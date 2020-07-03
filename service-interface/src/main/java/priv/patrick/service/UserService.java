@@ -6,12 +6,10 @@ import java.util.List;
 
 public interface UserService {
     /**
-     * 查找id大于参数的用户
-     *
-     * @param id 下限id
+     * @param ids id集合
      * @return
      */
-    List<User> listIdGtParamUsers(int id);
+    List<User> listUsers(List<Integer> ids);
 
     /**
      * @param id 用户id

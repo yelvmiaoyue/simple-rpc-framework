@@ -1,16 +1,2 @@
-spring:
-  profiles:
-    active: @env@
-
 server:
   port: 9000
-
-#mybatis
-mybatis-plus:
-  configuration:
-    use-generated-keys: true
-    map-underscore-to-camel-case: true
-  type-aliases-package: priv.patrick.platform.pojo
-  global-config:
-    db-config:
-      id-type: auto
