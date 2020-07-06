@@ -1,4 +1,4 @@
-package priv.patrick.rpc.utils;
+package priv.patrick.rpc.spi;
 
 import java.util.List;
 import java.util.ServiceLoader;

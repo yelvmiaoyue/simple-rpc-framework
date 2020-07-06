@@ -1,7 +1,8 @@
 package priv.patrick.rpc;
 
 import priv.patrick.rpc.nameservice.NameService;
-import priv.patrick.rpc.utils.ServiceLoaderUtils;
+import priv.patrick.rpc.stub.StubFactory;
+import priv.patrick.rpc.spi.ServiceLoaderUtils;
 
 import java.net.URI;
 
@@ -11,6 +12,10 @@ import java.net.URI;
  * @author Patrick_zhou
  */
 public class RpcCommonService {
+    public static <T> T getStub(URI uri, Class<T> serviceName) {
+        return StubFactory.createStub(serviceName);
+    }
+
     /**
      * 获取注册中心引用
      *
@@ -21,5 +26,9 @@ public class RpcCommonService {
         NameService nameService = ServiceLoaderUtils.load(NameService.class);
         nameService.init(uri.toString());
         return nameService;
+    }
+
+    public void startServer() {
+
     }
 }
