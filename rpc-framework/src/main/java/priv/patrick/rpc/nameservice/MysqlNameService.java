@@ -20,7 +20,7 @@ public class MysqlNameService implements NameService {
     private ServiceProvider localCache = new ServiceProvider();
     private final Object lock = new Object();
 
-    //todo 定期刷新缓存
+    //todo 定期刷新缓存,并通知所有serviceInfo更新
 
     @Override
     public synchronized void registerService(String serviceName, URI uri) {
@@ -46,7 +46,7 @@ public class MysqlNameService implements NameService {
     }
 
     @Override
-    public URI lookupService(String serviceName) {
+    public List<URI> lookupService(String serviceName) {
         //查本地缓存
         List<URI> uris = localCache.get(serviceName);
         if (CollectionUtils.isEmpty(uris)) {
@@ -64,7 +64,7 @@ public class MysqlNameService implements NameService {
         if (CollectionUtils.isEmpty(uris)) {
             return null;
         } else {
-            return this.loadBalance(uris);
+            return uris;
         }
     }
 
@@ -74,6 +74,7 @@ public class MysqlNameService implements NameService {
      * @param uris 可选地址
      * @return
      */
+    //todo  把负载均衡延后到invoke的时候
     private URI loadBalance(List<URI> uris) {
         //随机算法
         return uris.get(ThreadLocalRandom.current().nextInt(uris.size()));

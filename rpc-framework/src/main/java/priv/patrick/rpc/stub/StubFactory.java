@@ -3,6 +3,7 @@ package priv.patrick.rpc.stub;
 import com.itranswarp.compiler.JavaStringCompiler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import priv.patrick.rpc.transport.ServiceInfo;
 
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class StubFactory {
                     "        arguments[%d].setValue(arg%d);\n";
 
 
-    public static <T> T createStub(Class<T> serviceName) {
+    public static AbstractStub createStub(ServiceInfo serviceInfo, Class<?> serviceName) {
         try {
             //模板类名
             String stubSimpleName = serviceName.getSimpleName() + "Stub";
@@ -73,7 +74,7 @@ public class StubFactory {
                     arguments.append(argument);
                 }
                 //最后删掉个逗号
-                if(parameters.length()>0){
+                if (parameters.length() > 0) {
                     parameters.deleteCharAt(parameters.length() - 1);
                 }
 
@@ -85,14 +86,17 @@ public class StubFactory {
             }
 
             String source = String.format(CLASS_TEMPLATE, stubSimpleName, interfaceName, methodSources);
-            System.out.println(source);
+            if (log.isDebugEnabled()) {
+                log.debug(source);
+            }
             // 编译源代码
             JavaStringCompiler compiler = new JavaStringCompiler();
             Map<String, byte[]> results = compiler.compile(stubSimpleName + ".java", source);
             // 加载编译好的类
             Class<?> clazz = compiler.loadClass(stubFullName, results);
-            // 返回这个桩
-            return (T) clazz.newInstance();
+            AbstractStub stubInstance = (AbstractStub) clazz.newInstance();
+            stubInstance.setServiceInfo(serviceInfo);
+            return stubInstance;
         } catch (Exception e) {
             log.error("stub生成失败，{}", e.toString());
             return null;

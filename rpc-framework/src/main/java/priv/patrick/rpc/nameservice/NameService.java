@@ -1,6 +1,7 @@
 package priv.patrick.rpc.nameservice;
 
 import java.net.URI;
+import java.util.List;
 
 /**
  * 注册中心
@@ -21,7 +22,7 @@ public interface NameService {
      * @param serviceName 接口全限定名
      * @return
      */
-    URI lookupService(String serviceName);
+    List<URI> lookupService(String serviceName);
 
     /**
      * 初始化
