@@ -7,9 +7,13 @@ import org.slf4j.LoggerFactory;
 import priv.patrick.rpc.nameservice.NameService;
 import priv.patrick.rpc.spi.ServiceLoaderUtils;
 import priv.patrick.rpc.stub.AbstractStub;
+import priv.patrick.rpc.stub.ServiceInfo;
 import priv.patrick.rpc.stub.StubFactory;
-import priv.patrick.rpc.transport.ServiceInfo;
+import priv.patrick.rpc.transport.NettyClient;
+import priv.patrick.rpc.transport.PendingRequest;
 
+import java.io.Closeable;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -23,17 +27,25 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author Patrick_zhou
  */
-public class RpcCommonService {
+public class RpcCommonService implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(RpcCommonService.class);
 
     public static Map<URI, Channel> channelMap = new ConcurrentHashMap<>();
 
     private static Map<Class<?>, AbstractStub> stubMap = new ConcurrentHashMap<>();
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private final Lock readLock = readWriteLock.readLock();
-    private final Lock writeLock = readWriteLock.writeLock();
-    private final String NAMESERVICE_URI = "jdbc:mysql://localhost:3306/study?user=root&password=123456";
-    private final NameService nameService = getNameService(URI.create(NAMESERVICE_URI));
+    private static final String NAMESERVICE_URI = "jdbc:mysql://localhost:3306/study?user=root&password=123456";
+    private static NameService nameService = getNameService(URI.create(NAMESERVICE_URI));
+    private static NettyClient client;
+    private static PendingRequest pendingRequest;
+
+    private static final ReadWriteLock READ_WRITE_LOCK = new ReentrantReadWriteLock();
+    private static final Lock READ_LOCK = READ_WRITE_LOCK.readLock();
+    private static final Lock WRITE_LOCK = READ_WRITE_LOCK.writeLock();
+
+    static {
+        pendingRequest = new PendingRequest();
+        client = new NettyClient(pendingRequest);
+    }
 
     /**
      * 生成目标stub
@@ -48,14 +60,14 @@ public class RpcCommonService {
         }
 
         AbstractStub stub;
-        readLock.lock();
+        READ_LOCK.lock();
         try {
             stub = stubMap.get(serviceName);
         } finally {
-            readLock.unlock();
+            READ_LOCK.unlock();
         }
         if (stub == null) {
-            writeLock.lock();
+            WRITE_LOCK.lock();
             try {
                 //再次验证
                 stub = stubMap.get(serviceName);
@@ -67,12 +79,12 @@ public class RpcCommonService {
                         log.error("目标服务当前不可达。");
                         return null;
                     }
-                    ServiceInfo serviceInfo = new ServiceInfo(uris);
+                    ServiceInfo serviceInfo = new ServiceInfo(uris, pendingRequest);
                     stub = StubFactory.createStub(serviceInfo, serviceName);
                     stubMap.put(serviceName, stub);
                 }
             } finally {
-                writeLock.unlock();
+                WRITE_LOCK.unlock();
             }
         }
         return (T) stub;
@@ -83,7 +95,7 @@ public class RpcCommonService {
      *
      * @param uri 连接地址
      */
-    public NameService getNameService(URI uri) {
+    public static NameService getNameService(URI uri) {
         NameService nameService = ServiceLoaderUtils.load(NameService.class);
         nameService.init(uri.toString());
         return nameService;
@@ -91,5 +103,39 @@ public class RpcCommonService {
 
     public void startServer() {
 
+    }
+
+    /**
+     * 获取uri对应的channel
+     *
+     * @param uri 目标服务地址
+     */
+    public static Channel getChannel(URI uri) {
+        Channel channel;
+        READ_LOCK.lock();
+        try {
+            channel = channelMap.get(uri);
+        } finally {
+            READ_LOCK.unlock();
+        }
+        if (channel == null) {
+            WRITE_LOCK.lock();
+            try {
+                channel = channelMap.get(uri);
+
+                if (channel == null) {
+                    channel = client.createChannel(new InetSocketAddress(uri.getHost(), uri.getPort()));
+                    channelMap.put(uri, channel);
+                }
+            } finally {
+                WRITE_LOCK.unlock();
+            }
+        }
+        return channel;
+    }
+
+    @Override
+    public void close() {
+        client.close();
     }
 }

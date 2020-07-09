@@ -3,7 +3,6 @@ package priv.patrick.rpc.stub;
 import com.itranswarp.compiler.JavaStringCompiler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import priv.patrick.rpc.transport.ServiceInfo;
 
 import java.lang.reflect.Method;
 import java.util.Map;

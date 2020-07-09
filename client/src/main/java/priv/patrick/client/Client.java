@@ -10,7 +10,13 @@ public class Client {
     private static final RpcCommonService rpcCommonService = new RpcCommonService();
 
     public static void main(String[] args) {
-        test1();
+        try {
+            test1();
+        } catch (Exception e) {
+            log.error(e.toString());
+        } finally {
+            rpcCommonService.close();
+        }
     }
 
     private static void test1() {

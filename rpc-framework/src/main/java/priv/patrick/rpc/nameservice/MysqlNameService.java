@@ -9,7 +9,6 @@ import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Patrick_zhou
@@ -20,7 +19,7 @@ public class MysqlNameService implements NameService {
     private ServiceProvider localCache = new ServiceProvider();
     private final Object lock = new Object();
 
-    //todo 定期刷新缓存,并通知所有serviceInfo更新
+    //todo 定期刷新缓存,并通知所有stub更新
 
     @Override
     public synchronized void registerService(String serviceName, URI uri) {
@@ -66,18 +65,6 @@ public class MysqlNameService implements NameService {
         } else {
             return uris;
         }
-    }
-
-    /**
-     * 负载均衡
-     *
-     * @param uris 可选地址
-     * @return
-     */
-    //todo  把负载均衡延后到invoke的时候
-    private URI loadBalance(List<URI> uris) {
-        //随机算法
-        return uris.get(ThreadLocalRandom.current().nextInt(uris.size()));
     }
 
     private ServiceProvider getAllServices() {
