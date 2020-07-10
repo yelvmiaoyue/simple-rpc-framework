@@ -21,7 +21,7 @@ public abstract class AbstractStub {
         Channel channel = RpcCommonService.getChannel(this.loadBalance(serviceInfo.getUris()));
         //通过future异步拿到对应请求的响应
         CompletableFuture<Object> result = new CompletableFuture<>();
-        serviceInfo.getPendingRequest().put(new ResponseFuture(rpcRequest.getRequestId(), result));
+        serviceInfo.getPendingRequest().put(new ResponseFuture(rpcRequest.getId(), result));
         channel.writeAndFlush(rpcRequest).addListener(future -> {
             if (!future.isSuccess()) {
                 result.completeExceptionally(future.cause());

@@ -4,20 +4,20 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class RpcRequest implements Serializable {
-    private Integer requestId;
+    private Integer id;
     private String interfaceName;
     private String methodName;
     private Argument[] arguments;
 
     public RpcRequest(String interfaceName, String methodName, Argument[] arguments) {
-        this.requestId = IdGenerator.get();
+        this.id = IdGenerator.get();
         this.interfaceName = interfaceName;
         this.methodName = methodName;
         this.arguments = arguments;
     }
 
-    public Integer getRequestId() {
-        return requestId;
+    public Integer getId() {
+        return id;
     }
 
     public String getInterfaceName() {
@@ -47,7 +47,7 @@ public class RpcRequest implements Serializable {
     @Override
     public String toString() {
         return "RpcRequest{" +
-                "requestId=" + requestId +
+                "id=" + id +
                 ", interfaceName='" + interfaceName + '\'' +
                 ", methodName='" + methodName + '\'' +
                 ", arguments=" + Arrays.toString(arguments) +

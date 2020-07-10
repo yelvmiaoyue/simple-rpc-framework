@@ -107,4 +107,14 @@ public class MysqlNameService implements NameService {
             log.error("无法连接到数据库。");
         }
     }
+
+
+    @Override
+    public void close() {
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            log.warn("数据库连接已关闭。");
+        }
+    }
 }

@@ -22,6 +22,7 @@ public class NettyClient implements Closeable {
     private NioEventLoopGroup nioEventLoopGroup;
     private Bootstrap bootstrap;
     private PendingRequest pendingRequest;
+    private final long DEFAULT_CONNECTION_TIMEOUT= 10000;
 
     public NettyClient(PendingRequest pendingRequest) {
         this.pendingRequest = pendingRequest;
@@ -31,11 +32,14 @@ public class NettyClient implements Closeable {
         if (bootstrap == null) {
             this.init();
         }
-        ChannelFuture channelFuture = bootstrap.connect(address).addListener((ChannelFutureListener) future -> {
-            if (!future.isSuccess()) {
+        ChannelFuture channelFuture = bootstrap.connect(address);
+        try {
+            if(!channelFuture.await(DEFAULT_CONNECTION_TIMEOUT)){
                 throw new RuntimeException("无法连接到目标地址" + address.toString());
             }
-        });
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         Channel channel = channelFuture.channel();
         if (channel == null || !channel.isActive()) {
             throw new RuntimeException("无法连接到目标地址" + address.toString());

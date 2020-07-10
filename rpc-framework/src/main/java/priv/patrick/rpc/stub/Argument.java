@@ -21,4 +21,12 @@ public class Argument implements Serializable {
     public void setValue(Object value) {
         this.value = value;
     }
+
+    @Override
+    public String toString() {
+        return "Argument{" +
+                "type=" + type +
+                ", value=" + value +
+                '}';
+    }
 }

@@ -1,5 +1,6 @@
 package priv.patrick.rpc.nameservice;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.util.List;
 
@@ -8,7 +9,7 @@ import java.util.List;
  *
  * @author Patrick_zhou
  */
-public interface NameService {
+public interface NameService extends Closeable {
     /**
      * 注册服务
      *

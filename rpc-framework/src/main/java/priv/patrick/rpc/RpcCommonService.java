@@ -10,11 +10,17 @@ import priv.patrick.rpc.stub.AbstractStub;
 import priv.patrick.rpc.stub.ServiceInfo;
 import priv.patrick.rpc.stub.StubFactory;
 import priv.patrick.rpc.transport.NettyClient;
+import priv.patrick.rpc.transport.NettyServer;
 import priv.patrick.rpc.transport.PendingRequest;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,22 +35,36 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class RpcCommonService implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(RpcCommonService.class);
+    private static RpcCommonService instance = new RpcCommonService();
 
-    public static Map<URI, Channel> channelMap = new ConcurrentHashMap<>();
-
-    private static Map<Class<?>, AbstractStub> stubMap = new ConcurrentHashMap<>();
+    private static Map<URI, Channel> channelMap;
+    private static Map<String, Object> serviceMap;
+    private static Map<Class<?>, AbstractStub> stubMap;
     private static final String NAMESERVICE_URI = "jdbc:mysql://localhost:3306/study?user=root&password=123456";
-    private static NameService nameService = getNameService(URI.create(NAMESERVICE_URI));
-    private static NettyClient client;
+    private static NameService nameService;
     private static PendingRequest pendingRequest;
+    private static NettyClient client;
+    private static NettyServer server;
 
     private static final ReadWriteLock READ_WRITE_LOCK = new ReentrantReadWriteLock();
     private static final Lock READ_LOCK = READ_WRITE_LOCK.readLock();
     private static final Lock WRITE_LOCK = READ_WRITE_LOCK.writeLock();
 
-    static {
+    private RpcCommonService() {
+        channelMap = new ConcurrentHashMap<>();
+        serviceMap = new HashMap<>();
+        stubMap = new ConcurrentHashMap<>();
+        nameService = createNameService(URI.create(NAMESERVICE_URI));
         pendingRequest = new PendingRequest();
         client = new NettyClient(pendingRequest);
+        server = new NettyServer(serviceMap);
+    }
+
+    /**
+     * 获取单例对象
+     */
+    public static RpcCommonService getInstance() {
+        return instance;
     }
 
     /**
@@ -91,18 +111,23 @@ public class RpcCommonService implements Closeable {
     }
 
     /**
-     * 获取注册中心引用
+     * 创建注册中心
      *
      * @param uri 连接地址
      */
-    public static NameService getNameService(URI uri) {
+    private NameService createNameService(URI uri) {
         NameService nameService = ServiceLoaderUtils.load(NameService.class);
         nameService.init(uri.toString());
         return nameService;
     }
 
-    public void startServer() {
-
+    /**
+     * 服务端启动
+     *
+     * @param serverPort 服务端监听端口
+     */
+    public void startServer(int serverPort) {
+        server.start(serverPort);
     }
 
     /**
@@ -134,8 +159,48 @@ public class RpcCommonService implements Closeable {
         return channel;
     }
 
+    /**
+     * 服务端注册
+     * @param uri 服务端地址
+     */
+    public synchronized void registerAllServices(URI uri){
+        try {
+            URL resource = this.getClass().getClassLoader().getResource("META-INF/services");
+            if (resource == null) {
+                log.error("读取服务异常");
+                return;
+            }
+            File file = new File(resource.toURI());
+            File[] childFiles = file.listFiles();
+            if (childFiles == null || childFiles.length == 0) {
+                return;
+            }
+
+            for (File childFile : childFiles) {
+                if (childFile.isDirectory()) {
+                    continue;
+                }
+                String fullClassName = childFile.getPath();
+                String className = fullClassName.substring(fullClassName.indexOf("META-INF\\services") + 18);
+                //注册到注册中心
+                nameService.registerService(className, uri);
+                //注册本地实例，供 RequestHandler使用
+                Object instance = ServiceLoaderUtils.load(Class.forName(className));
+                serviceMap.put(className,instance);
+            }
+        } catch (URISyntaxException | ClassNotFoundException e) {
+            log.error(e.toString());
+        }
+    }
+
     @Override
     public void close() {
-        client.close();
+        try {
+            nameService.close();
+            server.close();
+            client.close();
+        } catch (IOException e) {
+            log.warn(e.toString());
+        }
     }
 }

@@ -19,15 +19,17 @@ import java.net.URL;
 public class ServerApplication implements SmartLifecycle {
 
     private boolean isRunning = false;
-    @Value("${nameService.uri}")
-    private String nameServiceUri;
-    private URI uri;
+    private int serverPort;
+    private URI localUri;
+    private RpcCommonService rpcCommonService;
 
-    public ServerApplication(@Value("${server.port}") int port) {
+    public ServerApplication(@Value("${rpc.port}") int serverPort) {
         try {
             InetAddress inetAddress = InetAddress.getLocalHost();
             String ip = inetAddress.getHostAddress();
-            this.uri = new URI("rpc://" + ip + ":" + port);
+            this.localUri = new URI("rpc://" + ip + ":" + serverPort);
+            this.rpcCommonService=RpcCommonService.getInstance();
+            this.serverPort=serverPort;
         } catch (Exception e) {
             log.error("获取本机ip失败");
         }
@@ -40,50 +42,21 @@ public class ServerApplication implements SmartLifecycle {
     @Override
     public void start() {
         log.info("服务开始启动。");
-        RpcCommonService rpcCommonService = new RpcCommonService();
         try {
-            NameService nameService = rpcCommonService.getNameService(new URI(nameServiceUri));
-            log.info("获取到注册中心");
-            //向注册中心注册自己提供的服务
-            this.registerAllServices(nameService);
+            //注册服务
+            rpcCommonService.registerAllServices(localUri);
             //启动服务端
-            rpcCommonService.startServer();
+            rpcCommonService.startServer(serverPort);
         } catch (Exception e) {
             log.error(e.toString());
         }
         isRunning = true;
     }
 
-    private void registerAllServices(NameService nameService) {
-        try {
-            URL resource = this.getClass().getClassLoader().getResource("META-INF/services");
-            if (resource == null) {
-                log.error("读取服务异常");
-                return;
-            }
-            File file = new File(resource.toURI());
-            File[] childFiles = file.listFiles();
-            if (childFiles == null || childFiles.length == 0) {
-                return;
-            }
-
-            for (File childFile : childFiles) {
-                if (childFile.isDirectory()) {
-                    continue;
-                }
-                String fullClassName = childFile.getPath();
-                String className = fullClassName.substring(fullClassName.indexOf("META-INF\\services") + 18);
-
-                nameService.registerService(className, uri);
-            }
-        } catch (URISyntaxException e) {
-            log.error(e.toString());
-        }
-    }
-
     @Override
     public void stop() {
         isRunning = false;
+        rpcCommonService.close();
     }
 
     @Override

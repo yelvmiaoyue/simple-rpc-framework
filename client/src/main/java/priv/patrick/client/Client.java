@@ -7,13 +7,13 @@ import priv.patrick.service.HelloService;
 
 public class Client {
     private static final Logger log = LoggerFactory.getLogger(Client.class);
-    private static final RpcCommonService rpcCommonService = new RpcCommonService();
+    private static final RpcCommonService rpcCommonService = RpcCommonService.getInstance();
 
     public static void main(String[] args) {
         try {
             test1();
         } catch (Exception e) {
-            log.error(e.toString());
+            e.printStackTrace();
         } finally {
             rpcCommonService.close();
         }

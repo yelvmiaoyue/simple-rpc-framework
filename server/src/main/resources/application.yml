@@ -1,5 +1,8 @@
 server:
   port: 9000
 
+rpc:
+  port: 9001
+
 nameService:
   uri: jdbc:mysql://localhost:3306/study?user=root&password=123456

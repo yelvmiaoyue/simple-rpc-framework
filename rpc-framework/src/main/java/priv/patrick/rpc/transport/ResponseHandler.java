@@ -1,13 +1,13 @@
 package priv.patrick.rpc.transport;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 
-public class ResponseHandler extends ChannelInboundHandlerAdapter {
+public class ResponseHandler extends SimpleChannelInboundHandler<RpcResponse> {
     private static final Logger log = LoggerFactory.getLogger(ResponseHandler.class);
     private PendingRequest pendingRequest;
 
@@ -16,8 +16,7 @@ public class ResponseHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        RpcResponse rpcResponse = (RpcResponse) msg;
+    protected void channelRead0(ChannelHandlerContext ctx, RpcResponse rpcResponse) throws Exception {
         CompletableFuture<Object> future = pendingRequest.remove(rpcResponse.getId());
         if (null != future) {
             future.complete(rpcResponse.getResponse());
