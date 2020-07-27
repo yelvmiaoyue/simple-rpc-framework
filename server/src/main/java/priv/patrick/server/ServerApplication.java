@@ -6,14 +6,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.SmartLifecycle;
 import priv.patrick.rpc.RpcCommonService;
-import priv.patrick.rpc.nameservice.NameService;
 
-import java.io.File;
 import java.net.InetAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 
+/**
+ * @author Patrick_zhou
+ */
 @SpringBootApplication
 @Slf4j
 public class ServerApplication implements SmartLifecycle {
@@ -28,8 +27,8 @@ public class ServerApplication implements SmartLifecycle {
             InetAddress inetAddress = InetAddress.getLocalHost();
             String ip = inetAddress.getHostAddress();
             this.localUri = new URI("rpc://" + ip + ":" + serverPort);
-            this.rpcCommonService=RpcCommonService.getInstance();
-            this.serverPort=serverPort;
+            this.rpcCommonService = RpcCommonService.getInstance();
+            this.serverPort = serverPort;
         } catch (Exception e) {
             log.error("获取本机ip失败");
         }
@@ -43,20 +42,18 @@ public class ServerApplication implements SmartLifecycle {
     public void start() {
         log.info("服务开始启动。");
         try {
-            //注册服务
-            rpcCommonService.registerAllServices(localUri);
-            //启动服务端
-            rpcCommonService.startServer(serverPort);
+            rpcCommonService.startServer(localUri, serverPort);
+            isRunning = true;
         } catch (Exception e) {
             log.error(e.toString());
+            isRunning = false;
         }
-        isRunning = true;
     }
 
     @Override
     public void stop() {
-        isRunning = false;
         rpcCommonService.close();
+        isRunning = false;
     }
 
     @Override

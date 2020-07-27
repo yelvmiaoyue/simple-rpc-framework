@@ -2,6 +2,9 @@ package priv.patrick.rpc.transport;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * @author Patrick_zhou
+ */
 public class ResponseFuture {
     private Integer id;
     private CompletableFuture<Object> result;

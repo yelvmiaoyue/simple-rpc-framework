@@ -2,6 +2,9 @@ package priv.patrick.rpc.transport;
 
 import java.io.Serializable;
 
+/**
+ * @author Patrick_zhou
+ */
 public class RpcResponse implements Serializable {
     private Integer id;
     private Object response;

@@ -8,8 +8,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import priv.patrick.rpc.transport.codec.Decoder;
 import priv.patrick.rpc.transport.codec.Encoder;
 
@@ -17,17 +15,17 @@ import java.io.Closeable;
 import java.util.Map;
 
 public class NettyServer implements Closeable {
-    private static final Logger log = LoggerFactory.getLogger(NettyServer.class);
     private NioEventLoopGroup acceptGroup;
     private NioEventLoopGroup workerGroup;
     private Channel channel;
     private Map<String, Object> serviceMap;
 
+    //todo 连接断开重连
     public NettyServer(Map<String, Object> serviceMap) {
         this.serviceMap = serviceMap;
     }
 
-    public void start(int serverPort) {
+    public void start(int serverPort) throws InterruptedException {
         ServerBootstrap bootstrap = new ServerBootstrap();
         acceptGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup(5);
@@ -43,12 +41,7 @@ public class NettyServer implements Closeable {
                                 .addLast(new RequestHandler(serviceMap));
                     }
                 });
-        try {
-            channel = bootstrap.bind(serverPort).sync().channel();
-            log.info("开始监听端口：{}", serverPort);
-        } catch (InterruptedException e) {
-            log.error("启动失败。{}", e.toString());
-        }
+        channel = bootstrap.bind(serverPort).sync().channel();
     }
 
     @Override

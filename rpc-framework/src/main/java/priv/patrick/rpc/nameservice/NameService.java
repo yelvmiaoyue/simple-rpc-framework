@@ -1,7 +1,7 @@
 package priv.patrick.rpc.nameservice;
 
-import java.io.Closeable;
 import java.net.URI;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -9,7 +9,7 @@ import java.util.List;
  *
  * @author Patrick_zhou
  */
-public interface NameService extends Closeable {
+public interface NameService {
     /**
      * 注册服务
      *
@@ -30,6 +30,7 @@ public interface NameService extends Closeable {
      *
      * @param uri 连接地址
      */
-    void init(String uri);
+    void init(String uri) throws SQLException;
 
+    void close() throws Exception;
 }

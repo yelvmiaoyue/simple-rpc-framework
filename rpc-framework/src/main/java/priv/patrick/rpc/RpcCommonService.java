@@ -2,8 +2,6 @@ package priv.patrick.rpc;
 
 import io.netty.channel.Channel;
 import org.apache.commons.collections4.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import priv.patrick.rpc.nameservice.NameService;
 import priv.patrick.rpc.spi.ServiceLoaderUtils;
 import priv.patrick.rpc.stub.AbstractStub;
@@ -20,6 +18,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +33,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author Patrick_zhou
  */
 public class RpcCommonService implements Closeable {
-    private static final Logger log = LoggerFactory.getLogger(RpcCommonService.class);
-    private static RpcCommonService instance = new RpcCommonService();
+    private static RpcCommonService instance;
+
+    static {
+        try {
+            instance = new RpcCommonService();
+        } catch (SQLException e) {
+            throw new RuntimeException("rpc service init fail !" + e.toString());
+        }
+    }
 
     private static Map<URI, Channel> channelMap;
     private static Map<String, Object> serviceMap;
@@ -50,7 +56,7 @@ public class RpcCommonService implements Closeable {
     private static final Lock READ_LOCK = READ_WRITE_LOCK.readLock();
     private static final Lock WRITE_LOCK = READ_WRITE_LOCK.writeLock();
 
-    private RpcCommonService() {
+    private RpcCommonService() throws SQLException {
         channelMap = new ConcurrentHashMap<>();
         serviceMap = new HashMap<>();
         stubMap = new ConcurrentHashMap<>();
@@ -73,9 +79,8 @@ public class RpcCommonService implements Closeable {
      * @param serviceName stub实现的接口class对象
      * @param <T>         接口类型
      */
-    public <T> T getStub(Class<T> serviceName) {
+    public <T> T getStub(Class<T> serviceName) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
         if (serviceName == null) {
-            log.error("service对象为空。");
             return null;
         }
 
@@ -96,8 +101,7 @@ public class RpcCommonService implements Closeable {
                     String service = serviceName.getCanonicalName();
                     List<URI> uris = nameService.lookupService(service);
                     if (CollectionUtils.isEmpty(uris)) {
-                        log.error("目标服务当前不可达。");
-                        return null;
+                        throw new RuntimeException("没有可达目标地址。");
                     }
                     ServiceInfo serviceInfo = new ServiceInfo(uris, pendingRequest);
                     stub = StubFactory.createStub(serviceInfo, serviceName);
@@ -115,7 +119,7 @@ public class RpcCommonService implements Closeable {
      *
      * @param uri 连接地址
      */
-    private NameService createNameService(URI uri) {
+    private NameService createNameService(URI uri) throws SQLException {
         NameService nameService = ServiceLoaderUtils.load(NameService.class);
         nameService.init(uri.toString());
         return nameService;
@@ -124,9 +128,11 @@ public class RpcCommonService implements Closeable {
     /**
      * 服务端启动
      *
+     * @param localUri
      * @param serverPort 服务端监听端口
      */
-    public void startServer(int serverPort) {
+    public void startServer(URI localUri, int serverPort) throws InterruptedException, URISyntaxException, ClassNotFoundException {
+        this.registerAllServices(localUri);
         server.start(serverPort);
     }
 
@@ -135,7 +141,7 @@ public class RpcCommonService implements Closeable {
      *
      * @param uri 目标服务地址
      */
-    public static Channel getChannel(URI uri) {
+    public static Channel getChannel(URI uri) throws InterruptedException {
         Channel channel;
         READ_LOCK.lock();
         try {
@@ -161,35 +167,31 @@ public class RpcCommonService implements Closeable {
 
     /**
      * 服务端注册
+     *
      * @param uri 服务端地址
      */
-    public synchronized void registerAllServices(URI uri){
-        try {
-            URL resource = this.getClass().getClassLoader().getResource("META-INF/services");
-            if (resource == null) {
-                log.error("读取服务异常");
-                return;
-            }
-            File file = new File(resource.toURI());
-            File[] childFiles = file.listFiles();
-            if (childFiles == null || childFiles.length == 0) {
-                return;
-            }
+    public synchronized void registerAllServices(URI uri) throws URISyntaxException, ClassNotFoundException {
+        URL resource = this.getClass().getClassLoader().getResource("META-INF/services");
+        if (resource == null) {
+            return;
+        }
+        File file = new File(resource.toURI());
+        File[] childFiles = file.listFiles();
+        if (childFiles == null || childFiles.length == 0) {
+            return;
+        }
 
-            for (File childFile : childFiles) {
-                if (childFile.isDirectory()) {
-                    continue;
-                }
-                String fullClassName = childFile.getPath();
-                String className = fullClassName.substring(fullClassName.indexOf("META-INF\\services") + 18);
-                //注册到注册中心
-                nameService.registerService(className, uri);
-                //注册本地实例，供 RequestHandler使用
-                Object instance = ServiceLoaderUtils.load(Class.forName(className));
-                serviceMap.put(className,instance);
+        for (File childFile : childFiles) {
+            if (childFile.isDirectory()) {
+                continue;
             }
-        } catch (URISyntaxException | ClassNotFoundException e) {
-            log.error(e.toString());
+            String fullClassName = childFile.getPath();
+            String className = fullClassName.substring(fullClassName.indexOf("META-INF\\services") + 18);
+            //注册到注册中心
+            nameService.registerService(className, uri);
+            //注册本地实例，供 RequestHandler使用
+            Object instance = ServiceLoaderUtils.load(Class.forName(className));
+            serviceMap.put(className, instance);
         }
     }
 
@@ -197,10 +199,9 @@ public class RpcCommonService implements Closeable {
     public void close() {
         try {
             nameService.close();
-            server.close();
-            client.close();
-        } catch (IOException e) {
-            log.warn(e.toString());
+        } catch (Exception ignored) {
         }
+        server.close();
+        client.close();
     }
 }

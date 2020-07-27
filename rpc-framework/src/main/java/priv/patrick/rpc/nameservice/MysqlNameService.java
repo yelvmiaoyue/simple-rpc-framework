@@ -1,8 +1,6 @@
 package priv.patrick.rpc.nameservice;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -14,7 +12,6 @@ import java.util.List;
  * @author Patrick_zhou
  */
 public class MysqlNameService implements NameService {
-    private static final Logger log = LoggerFactory.getLogger(MysqlNameService.class);
     private Connection connection = null;
     private ServiceProvider localCache = new ServiceProvider();
     private final Object lock = new Object();
@@ -40,7 +37,7 @@ public class MysqlNameService implements NameService {
             sql.setString(2, uri.toString());
             sql.executeUpdate();
         } catch (SQLException e) {
-            log.error("insert data fail !" + e.getMessage());
+            throw new RuntimeException("register service " + serviceName + " fail !" + e.getMessage());
         }
     }
 
@@ -84,37 +81,25 @@ public class MysqlNameService implements NameService {
                 });
             }
         } catch (Exception e) {
-            log.error("read data fail !" + e.getMessage());
+            throw new RuntimeException("read service data fail !" + e.getMessage());
         }
         return serviceProvider;
     }
 
-    private static URI getUriInstance(String uri) {
-        try {
-            return new URI(uri);
-        } catch (URISyntaxException e) {
-            log.error("create URI fail !" + e.getMessage());
-            return null;
-        }
+    private static URI getUriInstance(String uri) throws URISyntaxException {
+        return new URI(uri);
     }
 
     @Override
-    public void init(String uri) {
-        try {
-            connection = DriverManager.getConnection(uri);
-            localCache = this.getAllServices();
-        } catch (SQLException e) {
-            log.error("无法连接到数据库。");
-        }
+    public void init(String uri) throws SQLException {
+        connection = DriverManager.getConnection(uri);
+        localCache = this.getAllServices();
     }
 
 
     @Override
-    public void close() {
-        try {
-            connection.close();
-        } catch (SQLException e) {
-            log.warn("数据库连接已关闭。");
-        }
+    public void close() throws SQLException {
+        connection.close();
+        localCache.clear();
     }
 }

@@ -3,6 +3,9 @@ package priv.patrick.rpc.stub;
 import java.io.Serializable;
 import java.util.Arrays;
 
+/**
+ * @author Patrick_zhou
+ */
 public class RpcRequest implements Serializable {
     private Integer id;
     private String interfaceName;

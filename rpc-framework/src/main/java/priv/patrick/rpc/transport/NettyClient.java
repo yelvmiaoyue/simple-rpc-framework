@@ -3,14 +3,13 @@ package priv.patrick.rpc.transport;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import priv.patrick.rpc.transport.codec.Encoder;
 import priv.patrick.rpc.transport.codec.Decoder;
+import priv.patrick.rpc.transport.codec.Encoder;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
@@ -22,24 +21,16 @@ public class NettyClient implements Closeable {
     private NioEventLoopGroup nioEventLoopGroup;
     private Bootstrap bootstrap;
     private PendingRequest pendingRequest;
-    private final long DEFAULT_CONNECTION_TIMEOUT= 10000;
 
     public NettyClient(PendingRequest pendingRequest) {
         this.pendingRequest = pendingRequest;
     }
 
-    public synchronized Channel createChannel(InetSocketAddress address) {
+    public synchronized Channel createChannel(InetSocketAddress address) throws InterruptedException {
         if (bootstrap == null) {
             this.init();
         }
-        ChannelFuture channelFuture = bootstrap.connect(address);
-        try {
-            if(!channelFuture.await(DEFAULT_CONNECTION_TIMEOUT)){
-                throw new RuntimeException("无法连接到目标地址" + address.toString());
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        ChannelFuture channelFuture = bootstrap.connect(address).sync();
         Channel channel = channelFuture.channel();
         if (channel == null || !channel.isActive()) {
             throw new RuntimeException("无法连接到目标地址" + address.toString());

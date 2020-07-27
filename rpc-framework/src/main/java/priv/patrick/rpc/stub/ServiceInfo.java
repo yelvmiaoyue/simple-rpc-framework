@@ -5,6 +5,9 @@ import priv.patrick.rpc.transport.PendingRequest;
 import java.net.URI;
 import java.util.List;
 
+/**
+ * @author Patrick_zhou
+ */
 public class ServiceInfo {
     private List<URI> uris;
     private PendingRequest pendingRequest;

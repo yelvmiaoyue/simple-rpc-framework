@@ -2,6 +2,9 @@ package priv.patrick.rpc.stub;
 
 import java.io.Serializable;
 
+/**
+ * @author Patrick_zhou
+ */
 public class Argument implements Serializable {
     private Class<?> type;
     private Object value;
