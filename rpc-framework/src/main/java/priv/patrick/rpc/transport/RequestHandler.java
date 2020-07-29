@@ -57,7 +57,7 @@ public class RequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent event = (IdleStateEvent) evt;
             if (event.state() == IdleState.READER_IDLE) {
-//                System.out.println("关闭channel");
+                System.out.println("关闭channel");
                 ctx.channel().close();
             }
         } else {

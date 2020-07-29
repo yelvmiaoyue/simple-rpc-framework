@@ -26,7 +26,7 @@ public class Client {
         } catch (Exception e) {
             log.error(e.toString());
         } finally {
-//            rpcCommonService.close();
+            rpcCommonService.close();
         }
     }
 

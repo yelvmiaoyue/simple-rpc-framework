@@ -155,7 +155,7 @@ public class RpcCommonService implements Closeable {
                 channel = channelMap.get(uri);
 
                 if (channel == null) {
-                    channel = client.createChannel(new InetSocketAddress(uri.getHost(), uri.getPort()));
+                    channel = client.createChannel(uri, new InetSocketAddress(uri.getHost(), uri.getPort()));
                     channelMap.put(uri, channel);
                 }
             } finally {
@@ -193,6 +193,13 @@ public class RpcCommonService implements Closeable {
             Object instance = ServiceLoaderUtils.load(Class.forName(className));
             serviceMap.put(className, instance);
         }
+    }
+
+    /**
+     * 重连时更新map
+     */
+    public static void updateChannel(URI uri, Channel channel) {
+        channelMap.put(uri, channel);
     }
 
     @Override
