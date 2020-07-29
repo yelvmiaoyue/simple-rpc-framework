@@ -2,6 +2,8 @@ package priv.patrick.rpc.transport;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import priv.patrick.rpc.stub.Argument;
 import priv.patrick.rpc.stub.RpcRequest;
 
@@ -49,4 +51,18 @@ public class RequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
         }
         return response;
     }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent event = (IdleStateEvent) evt;
+            if (event.state() == IdleState.READER_IDLE) {
+//                System.out.println("关闭channel");
+                ctx.channel().close();
+            }
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
+    }
+
 }

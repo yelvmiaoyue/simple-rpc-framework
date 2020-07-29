@@ -19,13 +19,14 @@ public class Client {
         try {
             test1();
             test2();
+            Thread.sleep(12000);
             test3();
             test4();
 
         } catch (Exception e) {
             log.error(e.toString());
         } finally {
-            rpcCommonService.close();
+//            rpcCommonService.close();
         }
     }
 

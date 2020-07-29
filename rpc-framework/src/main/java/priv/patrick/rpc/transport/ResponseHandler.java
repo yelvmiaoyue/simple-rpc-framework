@@ -4,6 +4,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Patrick_zhou
@@ -22,4 +24,12 @@ public class ResponseHandler extends SimpleChannelInboundHandler<RpcResponse> {
             future.complete(rpcResponse.getResponse());
         }
     }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        new ScheduledThreadPoolExecutor(1).scheduleAtFixedRate(() -> {
+            ctx.writeAndFlush("ping");
+        }, 1, 5, TimeUnit.SECONDS);
+    }
+
 }

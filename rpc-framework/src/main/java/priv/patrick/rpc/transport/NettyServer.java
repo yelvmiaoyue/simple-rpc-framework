@@ -8,6 +8,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.timeout.IdleStateHandler;
 import priv.patrick.rpc.transport.codec.Decoder;
 import priv.patrick.rpc.transport.codec.Encoder;
 
@@ -34,7 +35,9 @@ public class NettyServer implements Closeable {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(new LengthFieldPrepender(2, 0, false))
+                        ch.pipeline()
+                                .addLast(new IdleStateHandler(10,0,0))
+                                .addLast(new LengthFieldPrepender(2, 0, false))
                                 .addLast(new Encoder())
                                 .addLast(new LengthFieldBasedFrameDecoder(32767, 0, 2, 0, 2))
                                 .addLast(new Decoder())
